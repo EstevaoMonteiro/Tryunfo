@@ -12,15 +12,22 @@ class App extends React.Component {
     cardImage: '',
     cardRare: '',
     cardTrunfo: false,
-    hasTrunfo: false,
     isSaveButtonDisabled: true,
+    button: [],
+    data: [],
+    filter: false,
+    rare: 'todas',
   };
 
   onInputChange = ({ target }) => {
-    const { name, value } = target;
-    this.setState({
-      [name]: value,
-    }, () => this.validateButton());
+    const { name } = target;
+    const value = target.type === 'checkbox'
+      ? target.checked : target.value;
+    this.setState(
+      { [name]: value,
+      },
+      () => this.validateButton(),
+    );
   };
 
   validateButton = () => {
@@ -33,11 +40,9 @@ class App extends React.Component {
       cardImage,
       cardRare,
     } = this.state;
-
     const maxlength = 90;
     const minLength = 0;
     const maxLengthTotal = 210;
-
     const attr1Input = minLength <= cardAttr1 && cardAttr1 <= maxlength;
     const attr2Input = minLength <= cardAttr2 && cardAttr2 <= maxlength;
     const attr3Input = minLength <= cardAttr3 && cardAttr3 <= maxlength;
@@ -68,6 +73,7 @@ class App extends React.Component {
       cardAttr3,
       cardImage,
       cardRare,
+      cardTrunfo,
     } = this.state;
     const cardsTypes = {
       cardName,
@@ -77,30 +83,59 @@ class App extends React.Component {
       cardAttr3,
       cardImage,
       cardRare,
+      cardTrunfo,
     };
-    if (cardsTypes) {
-      this.setState((prevent) => ({
-        button: [prevent.button, cardsTypes],
+    this.setState(
+      (element) => ({
         cardName: '',
         cardDescription: '',
+        cardImage: '',
         cardAttr1: '0',
         cardAttr2: '0',
         cardAttr3: '0',
-        cardImage: '',
         cardRare: 'normal',
-      }));
-    }
-    this.setState((prevent) => ({
-      button: [...prevent.button, cardsTypes],
-      cardName: '',
-      cardDescription: '',
-      cardAttr1: '0',
-      cardAttr2: '0',
-      cardAttr3: '0',
-      cardImage: '',
-      cardRare: 'normal',
-    }));
+        cardTrunfo: false,
+        isSaveButtonDisabled: true,
+        button: [...element.button, cardsTypes],
+      }),
+      () => this.saveElements(),
+    );
   };
+
+  saveElements = () => {
+    const { button } = this.state;
+    return button.some((i) => i.cardTrunfo === true);
+  };
+
+  filterElements = ({ target }) => {
+    const { button } = this.state;
+    const name = target.value;
+    const cards = button.filter((index) => index.cardName.includes(name));
+    this.setState({
+      data: cards,
+      filter: name !== '',
+    });
+  };
+
+  filterElementsSecond = (event) => {
+    const { button } = this.state;
+    const saveValue = event.target.value;
+    const filterData = button.filter((index) => index.cardRare === saveValue);
+    this.setState({
+      rare: saveValue,
+      data: filterData,
+      filter: event.target.value !== 'todas',
+    });
+  };
+
+  removeElements(element) {
+    const { button } = this.state;
+    const saveSentence = button.filter((item, index) => index !== element);
+    this.setState(
+      () => ({ button: saveSentence }),
+      () => this.saveElements(),
+    );
+  }
 
   render() {
     const {
@@ -112,8 +147,12 @@ class App extends React.Component {
       cardImage,
       cardRare,
       cardTrunfo,
-      hasTrunfo,
       isSaveButtonDisabled,
+      button: result,
+      getForms,
+      filter,
+      data,
+      rare,
     } = this.state;
     return (
       <div>
@@ -127,7 +166,7 @@ class App extends React.Component {
           cardImage={ cardImage }
           cardRare={ cardRare }
           cardTrunfo={ cardTrunfo }
-          hasTrunfo={ hasTrunfo }
+          hasTrunfo={ this.saveElements() }
           isSaveButtonDisabled={ isSaveButtonDisabled }
           onInputChange={ this.onInputChange }
           onSaveButtonClick={ this.onSaveButtonClick }
@@ -142,6 +181,57 @@ class App extends React.Component {
           cardRare={ cardRare }
           cardTrunfo={ cardTrunfo }
         />
+        <input
+          data-testid="name-filter"
+          type="text"
+          value={ getForms }
+          onChange={ (element) => this.filterElements(element) }
+        />
+        <select
+          data-testid="rare-filter"
+          value={ rare }
+          onChange={ (element) => this.filterElementsSecond(element) }
+        >
+          <option value="normal">normal</option>
+          <option value="raro">raro</option>
+          <option value="muito raro">muito raro</option>
+          <option value="todas">todas</option>
+        </select>
+        {filter
+          ? data.map((element, index) => (
+            <div key={ index }>
+              <Card
+                cardName={ element.cardName }
+                cardDescription={ element.cardDescription }
+                cardAttr1={ element.cardAttr1 }
+                cardAttr2={ element.cardAttr2 }
+                cardAttr3={ element.cardAttr3 }
+                cardImage={ element.cardImage }
+                cardRare={ element.cardRare }
+                cardTrunfo={ element.cardTrunfo }
+              />
+            </div>
+          )) : result.map((element, index) => (
+            <div key={ index }>
+              <Card
+                cardName={ element.cardName }
+                cardDescription={ element.cardDescription }
+                cardAttr1={ element.cardAttr1 }
+                cardAttr2={ element.cardAttr2 }
+                cardAttr3={ element.cardAttr3 }
+                cardImage={ element.cardImage }
+                cardRare={ element.cardRare }
+                cardTrunfo={ element.cardTrunfo }
+              />
+              <button
+                data-testid="delete-button"
+                type="button"
+                onClick={ () => this.removeElements(index) }
+              >
+                remover
+              </button>
+            </div>
+          ))}
       </div>
     );
   }
